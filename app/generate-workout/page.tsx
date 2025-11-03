@@ -14,17 +14,23 @@ export default function GenerateWorkout() {
   const [workoutLevel,  setWorkoutLevel] = useState('0')
   const selectWorkoutLevel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.currentTarget.value
-    console.log(value)
     setWorkoutLevel(value)
   }
 
   const [filename, setFilename] = useState("upload file")
+  const [isInvalidFile, setIsInvalidFile] = useState(false)
   const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files?.[0]
-    const ext = file?.name.split(".").pop()?.toLocaleLowerCase()
     
     if (!file) return
     
+    const ext = file?.name.split(".").pop()?.toLocaleLowerCase()
+    if (ext !== 'tcx') {
+      setIsInvalidFile(true)
+      e.currentTarget.value = ""
+      return
+    }
+    setIsInvalidFile(false)
     const filename = file.name.length > 25 ? `${file.name.slice(0, 25)} ... .${ext}` : file.name
     setFilename(filename)
   
@@ -82,7 +88,14 @@ export default function GenerateWorkout() {
               type="button"
               onClick={handleClickOnInputFile}
             >{filename}</button>
-            <input className="border rounded border-gray-400 hidden" type="file" ref={inputFileRef} onChange={handleUploadFile}/>
+            <input 
+              className="border rounded border-gray-400 hidden" 
+              type="file" 
+              ref={inputFileRef}
+              accept=".tcx"
+              onChange={handleUploadFile}
+            />
+            { isInvalidFile && <p className="text-xs">* Please select a .tcx file only</p> }
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-gray-600 text-sm">Date</span>
