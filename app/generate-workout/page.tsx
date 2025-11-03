@@ -55,10 +55,10 @@ export default function GenerateWorkout() {
     e.currentTarget.value = onlyNumberValue
   }
   return (
-    <form className="flex flex-col gap-7">
+    <form className="flex flex-col gap-7 w-full">
       <section className="flex flex-col gap-2">
         <h1 className="text-gray-800">Rider</h1>
-        <div className="flex gap-8">
+        <div className="flex gap-4 xs:flex-row xs:gap-8 flex-col">
           <label className="flex flex-col gap-1">
             <span className="text-gray-600 text-sm">FTP (watts)</span>
             <input 
@@ -78,9 +78,9 @@ export default function GenerateWorkout() {
           </label>
         </div>
       </section>
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-2 xs:w-full">
         <h1 className="text-gray-800">Route</h1>
-        <div className="flex gap-8">
+        <div className="flex gap-4 xs:flex-row xs:gap-8 flex-col">
           <label className="flex flex-col gap-1">
             <span className="text-gray-600 text-sm">Upload TCX</span>
             <button 
@@ -105,7 +105,7 @@ export default function GenerateWorkout() {
       </section>
       <section className="flex flex-col gap-2">
         <h1>Bike</h1>
-        <label className="flex flex-col w-[220px] gap-1">
+        <label className="flex flex-col xs:w-[220px] gap-1">
           <span className="text-gray-600 text-sm">Weight (lbs)</span>
           <input className="border rounded border-gray-400 px-3 py-1" onInput={setOnlyNumbers}/>
         </label>
