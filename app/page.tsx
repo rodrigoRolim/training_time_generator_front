@@ -1,7 +1,5 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-   <div>welcome</div>
+   <div><a href="/generate-workout">generate workout</a></div>
   );
 }
