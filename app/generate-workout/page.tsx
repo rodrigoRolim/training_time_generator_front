@@ -4,9 +4,9 @@ import { useRef, useState } from "react"
 import Downloading from "@/components/Downloading";
 
 export default function GenerateWorkout() {
-  const EASY = '0.75'
-  const MODERATE = '0.9'
-  const HARD = '1.1'
+  const EASY = '0.8'
+  const MODERATE = '1'
+  const HARD = '1.2'
   
   const [isDownloading, setIsDownloading] = useState(false)
 
