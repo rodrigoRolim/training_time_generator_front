@@ -96,11 +96,11 @@ export default function GenerateWorkout() {
     }
    
   }
-  const setOnlyNumbers = (e: React.InputEvent<HTMLInputElement>) => {
+  const allowOnlyDigits = (e: React.InputEvent<HTMLInputElement>) => {
     const onlyNumberValue = e.currentTarget.value.replace(/\D/g, '')
     e.currentTarget.value = onlyNumberValue
   }
-  const setOnlyLbsDigits = (e: React.InputEvent<HTMLInputElement>) => {
+  const allowOnlyLbsAsDigit = (e: React.InputEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const raw = input.value.replace(/[\D]/g, "");
 
@@ -125,7 +125,7 @@ export default function GenerateWorkout() {
               type="text"
               name="ftp"
               maxLength={4}
-              onInput={setOnlyNumbers}
+              onInput={allowOnlyDigits}
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -134,7 +134,7 @@ export default function GenerateWorkout() {
               className="border rounded border-gray-400 px-3 py-1"
               name="rider_mass"
               maxLength={5}
-              onInput={setOnlyLbsDigits}
+              onInput={allowOnlyLbsAsDigit}
             />
           </label>
         </div>
@@ -175,7 +175,7 @@ export default function GenerateWorkout() {
         <h1>Bike</h1>
         <label className="flex flex-col xs:w-[220px] gap-1">
           <span className="text-gray-600 text-sm">Weight (lbs)</span>
-          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" onInput={setOnlyLbsDigits}/>
+          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" onInput={allowOnlyLbsAsDigit}/>
         </label>
       </section>
       <section className="flex flex-col gap-2">
