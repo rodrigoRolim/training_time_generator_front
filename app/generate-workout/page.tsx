@@ -100,6 +100,19 @@ export default function GenerateWorkout() {
     const onlyNumberValue = e.currentTarget.value.replace(/\D/g, '')
     e.currentTarget.value = onlyNumberValue
   }
+  const setOnlyLbsDigits = (e: React.InputEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const raw = input.value.replace(/[\D]/g, "");
+
+    if (!raw) {
+      input.value = "";
+      return;
+    }
+
+    const number = (parseFloat(raw) / 100).toFixed(2); 
+    const formatted = number;
+    input.value = formatted;
+  }
   return (
     <form className="flex flex-col gap-7 w-full" onSubmit={handleSubmit}>
       <section className="flex flex-col gap-2">
@@ -119,9 +132,9 @@ export default function GenerateWorkout() {
             <span className="text-gray-600 text-sm">Weight (lbs)</span>
             <input 
               className="border rounded border-gray-400 px-3 py-1"
-              maxLength={4}
               name="rider_mass"
-              onInput={setOnlyNumbers}
+              maxLength={5}
+              onInput={setOnlyLbsDigits}
             />
           </label>
         </div>
@@ -162,7 +175,7 @@ export default function GenerateWorkout() {
         <h1>Bike</h1>
         <label className="flex flex-col xs:w-[220px] gap-1">
           <span className="text-gray-600 text-sm">Weight (lbs)</span>
-          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" onInput={setOnlyNumbers}/>
+          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" onInput={setOnlyLbsDigits}/>
         </label>
       </section>
       <section className="flex flex-col gap-2">
