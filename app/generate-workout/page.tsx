@@ -1,13 +1,50 @@
 'use client';
 
-import { useRef, useState } from "react"
+import { ReactNode, useRef, useState } from "react"
+import { useForm, SubmitHandler } from 'react-hook-form'
+import * as yup from "yup"
+import { yupResolver } from "@hookform/resolvers/yup"
 import Downloading from "@/components/Downloading";
+
+type WorkoutInputs = {
+  ftp: string;
+  rider_mass: number;
+  bike_mass: number;
+  file: FileList;
+  date?: string;
+  pace?: string;
+}
+const schema = yup.object({
+  ftp: yup.string().required('FTP is required'),
+  rider_mass: yup.number().min(0.01, 'rider weight must be greater than 0').required('Rider weight is required'),
+  bike_mass: yup.number().min(0.01, 'bike weight must be greater than 0').required('Bike weight is required'),
+  // pace: yup.string().required('Workout level is required'),
+  file: yup
+    .mixed<FileList>()
+    .test("fileRequired", "O arquivo TCX é obrigatório", (value) => {
+      if (!value || value.length === 0) return false
+      return true
+      // return value && value.length > 0
+    })
+    .test("fileType", "Please select a .tcx file only", (value) => {
+      console.log("fileType", value)
+      if (!value || (value as FileList).length === 0) return false
+      const file = (value as FileList)[0]
+      const ext = file.name.split(".").pop()?.toLowerCase()
+      return ext === "tcx"
+    }),
+})
 
 export default function GenerateWorkout() {
   const EASY = '0.8'
   const MODERATE = '1'
   const HARD = '1.2'
   
+  const { register, handleSubmit, setValue, trigger, formState: { errors, isSubmitted } } = useForm<WorkoutInputs>({
+    resolver: yupResolver(schema) as any,
+    mode: 'onSubmit',
+  });
+
   const [isDownloading, setIsDownloading] = useState(false)
 
   const inputFileRef = useRef<HTMLInputElement | null>(null)
@@ -15,31 +52,36 @@ export default function GenerateWorkout() {
     inputFileRef.current?.click()
   }
   
-  const [workoutLevel,  setWorkoutLevel] = useState('0')
+  const [workoutLevel,  setWorkoutLevel] = useState(EASY)
   const selectWorkoutLevel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.currentTarget.value
     setWorkoutLevel(value)
   }
 
   const [filename, setFilename] = useState("upload file")
-  const [isInvalidFile, setIsInvalidFile] = useState(false)
-  const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.currentTarget.files?.[0]
-    
-    if (!file) return
-    
-    const ext = file?.name.split(".").pop()?.toLocaleLowerCase()
-    if (ext !== 'tcx') {
-      setIsInvalidFile(true)
-      e.currentTarget.value = ""
-      return
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setValue("file", files, { shouldValidate: isSubmitted })
     }
-    setIsInvalidFile(false)
-    const filename = file.name.length > 25 ? `${file.name.slice(0, 25)} ... .${ext}` : file.name
-    setFilename(filename)
-  
-  }
 
+    if (!files || files.length === 0) {
+      setFilename("upload file");
+      return;
+    }
+
+    const file = files[0];
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const shortName =
+      file.name.length > 25 ? `${file.name.slice(0, 25)}... .${ext}` : file.name;
+
+    setFilename(shortName);
+
+    if (isSubmitted) {
+      await trigger("file"); // ✅ revalidate only if the form has already been submitted
+    }
+  }
+  
   const [date, setDate] = useState("")
   const handleDateInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     let onlyDigitsInput = e.currentTarget.value.replace(/\D/g, '')
@@ -54,12 +96,20 @@ export default function GenerateWorkout() {
     setDate(onlyDigitsInput)
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const generateWorkout: SubmitHandler<WorkoutInputs> = async (data) => {
+    console.log(data)
     if (isDownloading) return
-    e.preventDefault()
+
     setIsDownloading(true)
-    const form = e.currentTarget
-    const formData = new FormData(form)
+    const formData = new FormData()
+    formData.append('ftp', data.ftp)
+    formData.append('rider_mass', data.rider_mass.toString())
+    formData.append('bike_mass', data.bike_mass.toString())
+    formData.append('date', data.date || '')
+    formData.append('pace', data.pace || '')
+    if (data.file && data.file.length > 0) {
+      formData.append('file', data.file[0])
+    }
     try {
       const res = await fetch('http://localhost:8000/workout/create-workout-file', {
         method: 'POST',
@@ -105,7 +155,7 @@ export default function GenerateWorkout() {
     const raw = input.value.replace(/[\D]/g, "");
 
     if (!raw) {
-      input.value = "";
+      input.value = "0.00";
       return;
     }
 
@@ -114,57 +164,80 @@ export default function GenerateWorkout() {
     input.value = formatted;
   }
   return (
-    <form className="flex flex-col gap-7 w-full" onSubmit={handleSubmit}>
+    <form className="flex flex-col gap-4 w-full" noValidate onSubmit={handleSubmit(generateWorkout)}>
       <section className="flex flex-col gap-2">
         <h1 className="text-gray-800">Rider</h1>
         <div className="flex gap-4 xs:flex-row xs:gap-8 flex-col">
-          <label className="flex flex-col gap-1">
-            <span className="text-gray-600 text-sm">FTP (watts)</span>
+          <label className="flex flex-col gap-1 relative h-20">
+            <span className={`text-gray-600 text-sm ${errors.ftp ? 'text-red-600' : ''}`}>FTP (watts)</span>
             <input 
-              className="border rounded border-gray-400 px-3 py-1" 
+              className={`border rounded border-gray-400 px-3 py-1 ${errors.ftp ? 'border-red-600 outline-red-700' : ''}`}
               type="text"
-              name="ftp"
               maxLength={4}
+              aria-invalid={errors.ftp ? "true" : "false"}
+              aria-describedby="ftp-error"
+              {...register('ftp')}
+              onChange={async (e) => {
+                register('ftp').onChange(e)
+                await trigger('ftp')
+              }}
               onInput={allowOnlyDigits}
             />
+            {errors.ftp && <p id="ftp-error" className="text-xs text-red-600 absolute bottom-0">{errors.ftp.message}</p>}
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-gray-600 text-sm">Weight (lbs)</span>
+          <label className="flex flex-col gap-1 h-20 relative">
+            <span className={`text-gray-600 text-sm ${errors.rider_mass ? 'text-red-600' : ''}`}>Weight (lbs)</span>
             <input 
-              className="border rounded border-gray-400 px-3 py-1"
-              name="rider_mass"
+              className={`border rounded border-gray-400 px-3 py-1 ${errors.rider_mass ? 'border-red-600 outline-red-700' : ''}`}
+              {...register('rider_mass')}
+              aria-invalid={errors.rider_mass ? "true" : "false"}
+              aria-describedby="rider-mass-error"
+              type="text"
+              defaultValue="0.00"
+              onChange={async (e) => {
+                register('rider_mass').onChange(e)
+                await trigger('rider_mass')
+              }}
               maxLength={6}
               onInput={allowOnlyLbsAsDigit}
             />
+            {errors.rider_mass && 
+              <p id="rider-mass-error" className="text-xs text-red-600 absolute bottom-0" role="alert">
+                {errors.rider_mass.message}
+              </p>
+            }
           </label>
         </div>
       </section>
       <section className="flex flex-col gap-2 xs:w-full">
         <h1 className="text-gray-800">Route</h1>
         <div className="flex gap-4 xs:flex-row xs:gap-8 flex-col">
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 relative h-20">
             <span className="text-gray-600 text-sm">Upload TCX</span>
             <button 
-              className="text-xs bg-gray-100 text-gray-600 rounded border-dashed border px-3 py-2 w-[220px]" 
+              className={`text-xs bg-gray-100 text-gray-600 rounded border-dashed border px-3 py-2 w-[220px] ${ errors.file ? 'border-red-600' : 'border-gray-400' }`}
               type="button"
               onClick={handleClickOnInputFile}
             >{filename}</button>
             <input 
               className="border rounded border-gray-400 hidden" 
               type="file"
-              name="file"
+              {...register("file")}
+              aria-invalid={errors.file ? "true" : "false"}
+              aria-describedby="file-error"
               ref={inputFileRef}
               accept=".tcx"
               onChange={handleUploadFile}
             />
-            { isInvalidFile && <p className="text-xs">* Please select a .tcx file only</p> }
+            {/* { isInvalidFile && <p id="file-error" className="text-xs text-red-600 absolute bottom-0">Please select a .tcx file only</p> } */}
+            { errors.file && <p id="file-error" className="text-xs text-red-600 absolute bottom-0">{errors.file.message as ReactNode}</p>}
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-gray-600 text-sm">Date</span>
             <input 
               className="border rounded border-gray-400 px-3 py-1" 
               type="text" 
-              name="date" 
+              {...register('date')}
               value={date} 
               onChange={handleDateInput}
             />
@@ -173,9 +246,23 @@ export default function GenerateWorkout() {
       </section>
       <section className="flex flex-col gap-2">
         <h1>Bike</h1>
-        <label className="flex flex-col xs:w-[220px] gap-1">
+        <label className="flex flex-col xs:w-[220px] gap-1 h-20 relative">
           <span className="text-gray-600 text-sm">Weight (lbs)</span>
-          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" maxLength={6} onInput={allowOnlyLbsAsDigit}/>
+          <input 
+            className={`border rounded border-gray-400 px-3 py-1 ${errors.bike_mass ? 'border-red-600 outline-red-700' : ''}`}
+            {...register('bike_mass')}
+            aria-invalid={errors.bike_mass ? "true" : "false"}
+            aria-describedby="bike-mass-error"
+            type="text"
+            defaultValue="0.00"
+            onChange={async (e) => {
+              register('bike_mass').onChange(e)
+              await trigger('bike_mass')
+            }}
+            maxLength={6} 
+            onInput={allowOnlyLbsAsDigit}
+          />
+          {errors.bike_mass && <p id="bike-mass-error" className="text-xs text-red-600 absolute bottom-0">{errors.bike_mass.message}</p>}
         </label>
       </section>
       <section className="flex flex-col gap-2">
@@ -184,15 +271,15 @@ export default function GenerateWorkout() {
           <span className="text-gray-600 text-sm">Difficulty/pace</span>
           <div className="flex flex-col">
             <label className="flex gap-2">
-              <input type="radio" value={EASY} name="pace" checked={workoutLevel === EASY} onChange={selectWorkoutLevel}/>
+              <input type="radio" value={EASY} {...register('pace')} checked={workoutLevel === EASY} onChange={selectWorkoutLevel}/>
               <span className="text-gray-600 text-sm">Easy</span>
             </label>
             <label className="flex gap-2">
-              <input type="radio" value={MODERATE} name="pace" checked={workoutLevel === MODERATE} onChange={selectWorkoutLevel}/>
+              <input type="radio" value={MODERATE} {...register('pace')} checked={workoutLevel === MODERATE} onChange={selectWorkoutLevel}/>
              <span className="text-gray-600 text-sm">Moderate</span> 
             </label>
             <label className="flex gap-2">
-              <input type="radio" value={HARD} name="pace" checked={workoutLevel === HARD} onChange={selectWorkoutLevel}/>
+              <input type="radio" value={HARD} {...register('pace')} checked={workoutLevel === HARD} onChange={selectWorkoutLevel}/>
               <span className="text-gray-600 text-sm">Hard</span>
             </label>
           </div>
