@@ -133,7 +133,7 @@ export default function GenerateWorkout() {
             <input 
               className="border rounded border-gray-400 px-3 py-1"
               name="rider_mass"
-              maxLength={5}
+              maxLength={6}
               onInput={allowOnlyLbsAsDigit}
             />
           </label>
