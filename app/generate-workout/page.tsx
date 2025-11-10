@@ -175,7 +175,7 @@ export default function GenerateWorkout() {
         <h1>Bike</h1>
         <label className="flex flex-col xs:w-[220px] gap-1">
           <span className="text-gray-600 text-sm">Weight (lbs)</span>
-          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" onInput={allowOnlyLbsAsDigit}/>
+          <input className="border rounded border-gray-400 px-3 py-1" name="bike_mass" maxLength={6} onInput={allowOnlyLbsAsDigit}/>
         </label>
       </section>
       <section className="flex flex-col gap-2">
